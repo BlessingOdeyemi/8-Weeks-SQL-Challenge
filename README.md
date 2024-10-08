@@ -37,18 +37,19 @@ Danny has shared with you 3 key datasets for this case study:
 ### Case Study Questions
 1. What is the total amount each customer spent at the restaurant?
 
-- I created a database, tables and inserted the values.
+- I created a database, tables and inserted the values respoectively.
 
-  ```CREATE DATABASE 8_Weeks_SQL_Challenge
+  ```
+  CREATE DATABASE 8_Weeks_SQL_Challenge
   
   CREATE TABLE SALES (
   Customer_id VARCHAR(1) not null,
   Order_date DATE,
   Product_id INT
-)
+  )
 
-Insert into SALES (Customer_id, Order_date, Product_id)
-VALUES	('A', '2021-01-01', '1'),
+  Insert into SALES (Customer_id, Order_date, Product_id)
+  VALUES	('A', '2021-01-01', '1'),
 		('A', '2021-01-01', '2'),
 		('A', '2021-01-07', '2'),
 		('A', '2021-01-10', '3'),
@@ -63,24 +64,68 @@ VALUES	('A', '2021-01-01', '1'),
 		('C', '2021-01-01', '3'),
 		('C', '2021-01-01', '3'),
 		('C', '2021-01-07', '3');
-
-CREATE TABLE MENU (
+  CREATE TABLE MENU (
   Product_id INT,
   Product_name VARCHAR (5),
   Price INT
-)
+  )
 
-INSERT INTO menu (Product_id, Product_name, Price)
-VALUES	('1', 'Sushi', '10'),
+  INSERT INTO menu (Product_id, Product_name, Price)
+  VALUES	('1', 'Sushi', '10'),
 		('2', 'Curry', '15'),
 		('3', 'Ramen', '12')
 
-CREATE TABLE MEMBERS (
+  CREATE TABLE MEMBERS (
   Customer_id VARCHAR (1),
   Join_date DATE
-)
+  )
 
-INSERT INTO MEMBERS (Customer_id, Join_date)
-VALUES	('A', '2021-01-07'),
+  INSERT INTO MEMBERS (Customer_id, Join_date)
+  VALUES	('A', '2021-01-07'),
 		('B', '2021-01-09')
+  ```
+- I then created a view table to combine the 3 tables together, which helped me in answering the first question easily.
+```
+Create view VW_DannyDinner_TBL
+as 
+Select SALES.Customer_id, SALES.Order_date, MENU.Product_name, MENU.Price,
+	CASE
+		WHEN MEMBERS.Customer_id IS NOT NULL 
+			THEN 'Y'
+		ELSE 'N'
+	END AS Membership
+from SALES
+full join MENU
+on MENU.Product_id = SALES.Product_id
+full join MEMBERS
+on MEMBERS.Customer_id = SALES.Customer_id
+```
+THE TABLE IMAGE FOR COMBO
 
+I used the new table created ``` VW_DannyDinner_TBL ``` to sum up the order ```price``` made by per customer and grouped by the ``` Customer_id ```
+```
+select customer_id, sum(price) as TotalTransactionPerCustomer from [dbo].[VW_DannyDinner_TBL]
+group by Customer_id
+```
+Answer
+| Customer_id | TotalTransactioPerCustomer |
+| - | - |
+| A | 76 |
+| B | 74| 
+| C | 36 |
+
+2. How many days has each customer visited the restaurant?
+
+- A customer can make more than one order in a day, so a day (visit) can have multiple enteries in the data. Hence i used the ```DISTINCT``` function to ```COUNT``` the number of days visited by each customer, while still referencing ```VW_DannyDinner_TBL```
+```
+select customer_id, sum(price) as TotalTransactionPerCustomer from [dbo].[VW_DannyDinner_TBL]
+group by Customer_id
+```
+Answer
+| Customer_id | TotalNumberVisisted |
+| - | - |
+| A | 4 |
+| B | 6| 
+| C | 2 |
+
+3. What was the first item from the menu purchased by each customer?
