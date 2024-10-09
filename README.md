@@ -102,7 +102,7 @@ on MEMBERS.Customer_id = SALES.Customer_id
 ```
 THE TABLE IMAGE FOR COMBO
 
-I used the new table created ``` VW_DannyDinner_TBL ``` to sum up the order ```price``` made by per customer and grouped by the ``` Customer_id ```
+I used the new table created ``` VW_DannyDinner_TBL ``` to **SUM** up the order ```price``` made per customer and **GROUP**ed by the ``` Customer_id ```
 ```
 select customer_id, sum(price) as TotalTransactionPerCustomer from [dbo].[VW_DannyDinner_TBL]
 group by Customer_id
@@ -116,7 +116,7 @@ Answer
 
 2. How many days has each customer visited the restaurant?
 
-- A customer can make more than one order in a day, so a day (visit) can have multiple enteries in the data. Hence i used the ```DISTINCT``` function to ```COUNT``` the number of days visited by each customer, while still referencing ```VW_DannyDinner_TBL```
+- A customer can make more than one order in a day, so a day (visit) can have multiple enteries in the data. Hence i used the **DISTINCT** function to **COUNT** the number of days visited by each customer, while still referencing ```VW_DannyDinner_TBL```
 ```
 select customer_id, sum(price) as TotalTransactionPerCustomer from [dbo].[VW_DannyDinner_TBL]
 group by Customer_id
@@ -129,3 +129,113 @@ Answer
 | C | 2 |
 
 3. What was the first item from the menu purchased by each customer?
+- I basically just need to rank the orders against the customers. To do this i made use of **CTE** to create a temporary table result set **RankedOrders** to rank the orders by their ```Order_date``` using **ROW_NUMBER** function, which will further rank all orders by each customer from the earliest (1) to the latest.
+- Then limit the output to display only those ranked at 1
+
+```
+With RankedOrders 
+AS(
+	Select customer_id, Product_name, 
+	ROW_NUMBER() over(Partition by customer_id Order by Order_date)
+AS ROWNUMBER
+From [dbo].[VW_DannyDinner_TBL]
+)
+Select customer_id, Product_name from RankedOrders Where ROWNUMBER = 1
+```
+4. What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+- I made used of the ```VW_DannyDinner_TBL``` table created earlier, **COUNT** by each product, **GROUP**, and **ORDER** the products in descending order
+
+```
+SELECT Product_name, COUNT(Product_name) AS Max_CountOfPurchase
+FROM [dbo].[VW_DannyDinner_TBL]
+Group by Product_name
+Order by Count (Product_name) Desc
+Top 1
+```
+
+5. Which item was the most popular for each customer?
+- Remember **CTE**?, I created a temporary table to count the ```Product_name```, i then used the **RANK** function to rank and separate(***PARTITION***) the rows of the products and **COUNT** in descending order as **ROWNUMBER** from ```VW_DannyDinner_TBL``` table with respect to their products.
+- Then limit the output to display Only products ranked 1 as the most popular products for each customer.
+
+```
+With PopularProducts 
+AS(
+	Select customer_id, Product_name, Count(Product_name) AS Order_Count,
+	Rank() over(Partition by customer_id Order by count(Product_name) Desc)
+AS ROWNUMBER
+From [dbo].[VW_DannyDinner_TBL] Group by Customer_id, Product_name
+)
+Select customer_id, Product_name, Order_Count from PopularProducts Where ROWNUMBER = 1
+```
+
+6. Which item was purchased first by the customer after they became a member?
+
+
+
+```
+With FirstProduct 
+AS(
+	Select customer_id, Product_name, Count(Product_name) AS Order_Count,
+	Rank() over(Partition by customer_id Order by count(Product_name) Desc)
+AS ROWNUMBER
+From [dbo].[VW_DannyDinner_TBL] Group by Customer_id, Product_name
+)
+Select customer_id, Product_name, Order_Count from FirstProduct Where ROWNUMBER = 1
+```
+
+7. Which item was purchased just before the customer became a member?
+
+- I first created a view table to make all questions relating to rank easier to answer.
+```
+Create view VW_Ranking_Tbl
+AS
+Select S.Order_date, Mr.Customer_id, Mr.Join_date, M.Product_name, M.Price, M.Product_id
+	From SALES s
+	Full Join MEMBERS Mr On S.Customer_id = Mr.Customer_id
+	Full Join MENU M On S.Product_id = M.Product_id
+
+	Select S.Order_date, Mr.Customer_id, Mr.Join_date, M.Product_name, M.Price, M.Product_id
+	From SALES s
+	Join MEMBERS Mr On S.Customer_id = Mr.Customer_id
+	Join MENU M On S.Product_id = M.Product_id
+```
+- I then proceed to answer the question with reference to the newly created table ```Create view VW_Ranking_Tbl```
+
+```
+With RankedOrders AS (
+Select* ,
+	Dense_Rank() Over(Partition by Customer_id Order by order_date Desc) AS previous_Product
+	From [dbo].[VW_Ranking_Tbl]
+	)
+	Select Customer_id, Order_date, Product_name
+	From RankedOrders
+Where Order_date < Join_date AND Dense_Rank = 1
+```
+
+8. What is the total items and amount spent for each member before they became a member?
+
+```
+Select Customer_id, COUNT(Distinct Product_name) AS Total_items,
+SUM(Price) AS Amount_spent
+From [dbo].[VW_Ranking_Tbl]
+Where Order_date < Join_date
+Group by Customer_id
+```
+
+9. If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+
+```
+Select Customer_id, SUM(
+	CASE
+		WHEN Product_name = 'Sushi'
+		THEN 20 * Price
+	ELSE 10 * Price
+	END
+	)
+AS Total_points From SALES s
+left Join MENU M On S.Product_id = M.Product_id
+Group by Customer_id
+```
+
+10. In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi
