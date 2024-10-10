@@ -35,7 +35,7 @@ Danny has shared with you 3 key datasets for this case study:
 
 
 ### Case Study Questions
-1. What is the total amount each customer spent at the restaurant?
+**1. What is the total amount each customer spent at the restaurant?**
 
 - I created a database, tables and inserted the values respoectively.
 
@@ -116,6 +116,7 @@ Answer
 
 ![1](https://github.com/user-attachments/assets/57d066a6-af25-4c33-90aa-feb74687feb6)
 
+**- Customer A, B, and C spent $76, $74, and $36 respectively, which also means that Customer A spent the most**
 
 2. How many days has each customer visited the restaurant?
 
@@ -130,7 +131,10 @@ Answer
 | A | 4 |
 | B | 6| 
 | C | 2 |
+
 ![2](https://github.com/user-attachments/assets/df6858f4-2678-48b3-afea-9dd31615dcda)
+
+**- Customer B visited Danny Diner the most at 6 times**
 
 3. What was the first item from the menu purchased by each customer?
 - I basically just need to rank the orders against the customers. To do this i made use of **CTE** to create a temporary table result set **RankedOrders** to rank the orders by their ```Order_date``` using **ROW_NUMBER** function, which will further rank all orders by each customer from the earliest (1) to the latest.
@@ -148,6 +152,9 @@ Select customer_id, Product_name from RankedOrders Where ROWNUMBER = 1
 ```
 ![3](https://github.com/user-attachments/assets/49622982-fcf7-4e2f-988d-fa2d3a8584eb)
 
+**- Customer A's first orders are Curry and Sushi**
+**- Customer B's first order is Curry**
+**- Customer C's first order is Ramen**
 
 4. What is the most purchased item on the menu and how many times was it purchased by all customers?
 
@@ -174,7 +181,7 @@ AS(
 	Rank() over(Partition by customer_id Order by count(Product_name) Desc)
 AS ROWNUMBER
 From [dbo].[VW_DannyDinner_TBL] Group by Customer_id, Product_name
-)
+) vdxdddfdffddffdvfd
 Select customer_id, Product_name, Order_Count from PopularProducts Where ROWNUMBER = 1
 ```
 ![5](https://github.com/user-attachments/assets/df858a84-d8a2-4b44-9f0a-73e3954b85ea)
@@ -221,7 +228,9 @@ Select* ,
 	)
 	Select Customer_id, Order_date, Product_name
 	From RankedOrders
-Where Order_date < Join_date AND Dense_Rank = 1
+Where Order_date < Join_date
+Order by Order_date Desc
+Top 1
 ```
 
 
